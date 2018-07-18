@@ -1,0 +1,68 @@
+---
+title: "Markdown of Practice Interviews"
+author: "Danielle Strauss"
+date: "July 18, 2018"
+output: html_document
+---
+
+```{Loading Packages}
+library(quanteda)
+library(readr)
+library(tidytext)
+library(dplyr)
+```
+
+Alternative Ability Files are in the One Drive File
+
+```{Set working directory}
+setwd("C:/Users/dstrauss/Documents/AlternativeAbilities")
+```
+
+
+
+```{Create List with all the Files}
+interviews <- map_df(list.files("C:\\Users\\dstrauss\\Documents\\AlternativeAbilities", full.names = TRUE), read_tsv, col_names = FALSE)
+```
+
+Interview Data Set that excludes any NAs
+```{w/o NAs}
+clean_interview <- interviews %>% filter(!is.na(Report))
+```
+
+Interview text is now associated with the relevant file 
+```{r}
+my.import <- function(data) {
+  my.df <- read_tsv(data, col_names = FALSE)
+  names(my.df) <- "Report" 
+  my.df$Name <- as.factor(data)
+  return(my.df)
+}
+interviews <- lapply(setinterviews, my.import)
+interviews <- do.call("rbind", interviews)
+```
+
+```{r Tidying Interviews for one word and two word tokens}
+tidy_interviews <- interviews %>% unnest_tokens(word, Report, token = "words")
+tidy_interviews_ngram <- clean_interview %>% 
+  unnest_tokens(bigram, Report, token = "ngrams", n = 2)
+```
+
+```{r Pulling out words associated with developmental disabilities and mental health}
+one_dev <- tidy_interviews %>% 
+  count(Name, word) %>%
+  inner_join(Developmental.Disability.Word.Key)
+one_mh <- tidy_interviews %>%
+  count(Name, word) %>%
+  inner_join(Mental.Health.Words)
+```
+
+Nothing showed up when I searched for bigrams
+```{r Bigram search for dev disabilities and mental health}
+bi_dev <- tidy_interviews_ngram %>%
+  count(Name, bigram) %>%
+  inner_join(Developmental.Disability.Word.Key)
+bi_mh <- tidy_interviews_ngram %>%
+  count(Name, bigram) %>%
+  inner_join(Mental.Health.Words)
+```
+
