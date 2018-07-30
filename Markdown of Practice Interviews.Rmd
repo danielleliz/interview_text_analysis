@@ -9,29 +9,28 @@ output: html_document
 library(quanteda)
 library(readr)
 library(tidytext)
+library(tidyverse)
 library(dplyr)
+library(purrr)
+library(tm)
 ```
 
-Alternative Ability Files are in the One Drive File
+Mental Health Files are in the Data from R One Drive File
 
 ```{Set working directory}
-setwd("C:/Users/dstrauss/Documents/AlternativeAbilities")
+setwd("C:/Users/dstrauss/Documents/MentalHealthTextAnalysis")
+setinterviews <- list.files(pattern = ".txt")
 ```
 
 
 
 ```{Create List with all the Files}
-interviews <- map_df(list.files("C:\\Users\\dstrauss\\Documents\\AlternativeAbilities", full.names = TRUE), read_tsv, col_names = FALSE)
+interviews <- map_df(list.files("C:\\Users\\dstrauss\\Documents\\MentalHealthTextAnalysis", full.names = TRUE), 
+                     read_tsv, col_names = FALSE)
 ```
 
-Interview Data Set that excludes any NAs
-```{w/o NAs}
-clean_interview <- interviews %>% filter(!is.na(Report))
-```
-
-Interview text is now associated with the relevant file 
-```{r}
-my.import <- function(data) {
+#Steps to get interview text associated with specific interview
+```my.import <- function(data) {
   my.df <- read_tsv(data, col_names = FALSE)
   names(my.df) <- "Report" 
   my.df$Name <- as.factor(data)
@@ -41,28 +40,45 @@ interviews <- lapply(setinterviews, my.import)
 interviews <- do.call("rbind", interviews)
 ```
 
+#Clean Interview data set that does not include NAs
+```clean_interview <- interviews %>% filter(!is.na(Report))
+```
+
 ```{r Tidying Interviews for one word and two word tokens}
 tidy_interviews <- interviews %>% unnest_tokens(word, Report, token = "words")
 tidy_interviews_ngram <- clean_interview %>% 
   unnest_tokens(bigram, Report, token = "ngrams", n = 2)
 ```
+#Tidy Interviews
+```
+tidy_interviews <- clean_interview %>% unnest_tokens(word, Report, token = "words")
+tidy_interviews_ngram <- clean_interview %>% 
+  unnest_tokens(bigram, Report, token = "ngrams", n = 2)
+```
 
-```{r Pulling out words associated with developmental disabilities and mental health}
+#Read in Excel Files (in Data from R File)
+```{r Bigram search for dev disabilities and mental health}
+DevDisWordKey <- read_csv("DevelopmentalDisabilityWordKey.csv", col_names = TRUE)
+MHWordKey <- read_csv("MentalHealthWords.csv", col_names = TRUE)
+
+```
+#Searching for one word using Mental Health and Developmental Disability Word Keys
+```
 one_dev <- tidy_interviews %>% 
   count(Name, word) %>%
-  inner_join(Developmental.Disability.Word.Key)
+  inner_join(DevDisWordKey)
 one_mh <- tidy_interviews %>%
   count(Name, word) %>%
-  inner_join(Mental.Health.Words)
+  inner_join(MHWordKey)
 ```
-
-Nothing showed up when I searched for bigrams
-```{r Bigram search for dev disabilities and mental health}
-bi_dev <- tidy_interviews_ngram %>%
-  count(Name, bigram) %>%
-  inner_join(Developmental.Disability.Word.Key)
-bi_mh <- tidy_interviews_ngram %>%
-  count(Name, bigram) %>%
-  inner_join(Mental.Health.Words)
+#Searching for Multiple Words using Mental Health and Developmental Disability Word Keys
 ```
+bigrams.separated.before <- tidy_interviews_ngram %>%
+  separate(bigram, c("word1", "word2"), sep = " ")
 
+bi_dev <- bigrams.separated.before %>%
+  filter((word1 %in% c("developmental", "autism", "behavioral", "applied", "behavior", "intellectual", "occupational", "speech")), word2 %in% c("disability", "spectrum", "disorder", "behavior", "interventionist", "intervention", "delay", "therapist", "therapy"))
+
+bi_mh <- bigrams.separated.before %>%
+  filter((word1 %in% c("emotional", "behavioral", "sexual", "domestic", "bipolar", "eating", "mental", "panic", "anxiety")), word2 %in% c("difficulties", "abuse", "violence", "disorder", "health", "illness", "attack"))
+```
