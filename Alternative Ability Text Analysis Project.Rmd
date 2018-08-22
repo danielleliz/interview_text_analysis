@@ -16,7 +16,7 @@ library(tm)
 library(psych)
 ```
 
-Set Working Directory
+Set working directory
 ```{r cars}
 setwd("C:/Users/dstrauss/Documents/MentalHealthTextAnalysis")
 getwd()
@@ -48,7 +48,7 @@ interviews <- lapply(setinterviews, my.import)
 interviews <- do.call("rbind", interviews)
 ```
 
-Clean Interview data set without NAs
+Clean interview data set without NAs
 ```{r}
 clean_interview <- interviews %>% 
   filter(!is.na(Report))
@@ -58,7 +58,7 @@ tidy_interviews <- clean_interview %>%
   unnest_tokens(word, Report, token = "words")
 ```
 
-Read in Excel Files
+Read in Excel files
 ```{r}
 #DevDisWordKey <- read_csv("filename.csv", col_names = TRUE)
 #MHWordKey <- read_csv("filename.csv", col_names = TRUE)
@@ -76,7 +76,7 @@ one_mh <- tidy_interviews %>%
   inner_join(MHWordKey)
 ```
 
-Binary for ALL developmental disability words
+Create a binary for developmental disability words
 ```{r}
 one_dev$autism <- 1
 one_dev$autism <- if_else(one_dev$word == "autism", 1, 0)
@@ -146,7 +146,7 @@ one_mh$counselor <- 1
 one_mh$counselor <- if_else(one_mh$word == "counselor", 1, 0)
 ```
 
-Add Developmental Disability Words to one_mh
+Add developmental disability words to one_mh
 ```{r}
 one_mh$autism <- 0
 one_mh$adhd <- 0
