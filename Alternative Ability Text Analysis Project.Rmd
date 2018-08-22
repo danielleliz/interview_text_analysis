@@ -1,0 +1,182 @@
+---
+title: "Alternative Ability Text Analysis Project"
+author: "Danielle Strauss"
+date: "August 22, 2018"
+output: html_document
+---
+Loading Packages
+```{r}
+library(quanteda)
+library(readr)
+library(tidytext)
+library(tidyverse)
+library(dplyr)
+library(purrr)
+library(tm)
+library(psych)
+```
+
+Set Working Directory
+```{r cars}
+setwd("C:/Users/dstrauss/Documents/MentalHealthTextAnalysis")
+getwd()
+
+```
+
+Retrieve all files in working directory ending with ".txt"
+```{r}
+setinterviews <- list.files(pattern = ".txt")
+```
+
+Create a list with all the interview files
+```{r}
+interviews <- map_df(list.files("", full.names = TRUE), 
+                     read_tsv, col_names = FALSE)
+```
+
+Steps to get interview text associated with specific interview
+```{r}
+my.import <- function(data) {
+  my.df <- read_tsv(data, col_names = FALSE)
+  names(my.df) <- "Report" 
+  my.df$Name <- as.factor(data)
+  return(my.df)
+}
+
+interviews <- lapply(setinterviews, my.import)
+
+interviews <- do.call("rbind", interviews)
+```
+
+Clean Interview data set without NAs
+```{r}
+clean_interview <- interviews %>% 
+  filter(!is.na(Report))
+
+#Tidy Interviews
+tidy_interviews <- clean_interview %>% 
+  unnest_tokens(word, Report, token = "words")
+```
+
+Read in Excel Files
+```{r}
+#DevDisWordKey <- read_csv("filename.csv", col_names = TRUE)
+#MHWordKey <- read_csv("filename.csv", col_names = TRUE)
+
+```
+
+Search for one word using Mental Health and Developmental Disability Word Keys
+```{r}
+one_dev <- tidy_interviews %>% 
+  count(Name, word) %>%
+  inner_join(DevDisWordKey)
+
+one_mh <- tidy_interviews %>%
+  count(Name, word) %>%
+  inner_join(MHWordKey)
+```
+
+Binary for ALL developmental disability words
+```{r}
+one_dev$autism <- 1
+one_dev$autism <- if_else(one_dev$word == "autism", 1, 0)
+one_dev$adhd <- 1
+one_dev$adhd <- if_else(one_dev$word == "adhd", 1, 0)
+one_dev$add <- 1
+one_dev$add <- if_else(one_dev$word == "add", 1, 0)
+one_dev$aspergers <- 1
+one_dev$aspergers <- if_else(one_dev$word == "aspergers", 1, 0)
+one_dev$iep <- 1
+one_dev$iep <- if_else(one_dev$word == "iep", 1, 0)
+```
+
+Add mental health key Words to one_dev data frame
+```{r}
+one_dev$anxiety <- 0
+one_dev$depression <- 0
+one_dev$bipolar <- 0
+one_dev$anorexia <- 0
+one_dev$bulimia <- 0
+one_dev$ocd <- 0
+one_dev$schizophrenia <- 0
+one_dev$ptsd <- 0
+one_dev$trauma <- 0
+one_dev$therapist <- 0
+one_dev$therapy <- 0
+one_dev$neglect <- 0
+one_dev$abuse <- 0
+one_dev$bullying <- 0
+one_dev$psychiatrist <- 0
+one_dev$counselor <- 0
+```
+
+Creating a binary for mental health words
+```{r}
+one_mh$anxiety <- 1
+one_mh$anxiety <- if_else(one_mh$word == "anxiety", 1, 0)
+one_mh$depression <- 1
+one_mh$depression <- if_else(one_mh$word == "depression", 1, 0)
+one_mh$bipolar <- 1
+one_mh$bipolar <- if_else(one_mh$word == "bipolar", 1, 0)
+one_mh$anorexia <- 1
+one_mh$anorexia <- if_else(one_mh$word == "anorexia", 1, 0)
+one_mh$bulimia <- 1
+one_mh$bulimia <- if_else(one_mh$word == "bulimia", 1, 0)
+one_mh$ocd <- 1
+one_mh$ocd <- if_else(one_mh$word == "ocd", 1, 0)
+one_mh$schizophrenia <- 1
+one_mh$schizophrenia <- if_else(one_mh$word == "schizophrenia", 1, 0)
+one_mh$ptsd <- 1
+one_mh$ptsd <- if_else(one_mh$word == "ptsd", 1, 0)
+one_mh$trauma <- 1
+one_mh$trauma <- if_else(one_mh$word == "trauma", 1, 0)
+one_mh$therapist <- 1
+one_mh$therapist <- if_else(one_mh$word == "therapist", 1, 0)
+one_mh$therapy <- 1
+one_mh$therapy <- if_else(one_mh$word == "therapy", 1, 0)
+one_mh$neglect <- 1
+one_mh$neglect <- if_else(one_mh$word == "neglect", 1, 0)
+one_mh$abuse <- 1
+one_mh$abuse <- if_else(one_mh$word == "abuse", 1, 0)
+one_mh$bullying <- 1
+one_mh$bullying <- if_else(one_mh$word == "bullying", 1, 0)
+one_mh$psychiatrist <- 1
+one_mh$psychiatrist <- if_else(one_mh$word == "psychiatrist", 1, 0)
+one_mh$counselor <- 1
+one_mh$counselor <- if_else(one_mh$word == "counselor", 1, 0)
+```
+
+Add Developmental Disability Words to one_mh
+```{r}
+one_mh$autism <- 0
+one_mh$adhd <- 0
+one_mh$add <- 0
+one_mh$aspergers <- 0
+one_mh$iep <- 0
+```
+
+Merge one_mh and one_dev
+```{r}
+one_word <- rbind(one_dev, one_mh)
+
+sparse_words <- one_word %>% 
+  cast_sparse(Name, word, n)
+```
+
+Exact names are combined into a data frame
+```{r}
+x <- as.data.frame(as.matrix(sparse_words))
+summary(x)
+```
+
+Sum all rows
+```{r}
+x$sum <- rowSums(x) 
+```
+
+Calculate number of Alternative Abilities
+```{r}
+x$AltAb <- x$sum > 8
+
+sum(x$AltAb)
+```
